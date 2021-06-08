@@ -12,13 +12,13 @@ type testObjectType struct {
 	AttrTypes map[string]attr.Type
 }
 
-func (t testObjectType) WithAttributeTypes(types map[string]attr.Type) attr.AttributesType {
+func (t testObjectType) WithAttributesTypes(types map[string]attr.Type) attr.AttributesType {
 	return testObjectType{
 		AttrTypes: types,
 	}
 }
 
-func (t testObjectType) AttributeTypes() map[string]attr.Type {
+func (t testObjectType) AttributesTypes() map[string]attr.Type {
 	return t.AttrTypes
 }
 

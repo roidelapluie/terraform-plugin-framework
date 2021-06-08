@@ -77,7 +77,7 @@ func Struct(ctx context.Context, typ attr.Type, object tftypes.Value, target ref
 		return target, path.NewErrorf("mismatch between struct and object: %s", strings.Join(missing, " "))
 	}
 
-	attrTypes := attrsType.AttributeTypes()
+	attrTypes := attrsType.AttributesTypes()
 
 	// now that we know they match perfectly, fill the struct with the
 	// values in the object
