@@ -91,6 +91,14 @@ func (l ListType) Equal(o attr.Type) bool {
 	return l.ElemType.Equal(other.ElemType)
 }
 
+func (l ListType) ApplyTerraform5AttributePathStep(step tftypes.AttributePathStep) (interface{}, error) {
+	if _, ok := step.(tftypes.ElementKeyInt); !ok {
+		return nil, fmt.Errorf("cannot apply step %T to ListType", step)
+	}
+
+	return l.ElemType, nil
+}
+
 // List represents a list of AttributeValues, all of the same type, indicated
 // by ElemType.
 type List struct {
@@ -183,3 +191,23 @@ func (l List) Equal(o attr.Value) bool {
 	}
 	return true
 }
+
+// ListOf returns a new list with an ElemType of tftypes.Object, whose elements
+// are the values passed in. The struct type must have struct tags TODO
+// func ListOf(values []interface{}) List {
+// 	// make the list
+// 	// populate the list with tftypes.Objects
+
+// 	// to make the object type:
+// 	// reflect to get the type of the passed in struct
+// 	// need to get map[string]tftypes.Type
+
+// 	l := List{
+// 		ElemType: tftypes.Object,
+// 	}
+
+// 	for _, v := range values {
+// 		objType :=
+// 		l.Elems = append(l.Elems, )
+// 	}
+// }
