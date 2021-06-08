@@ -9,12 +9,22 @@ import (
 )
 
 type testObjectType struct {
-	AttributeTypes map[string]attr.Type
+	AttrTypes map[string]attr.Type
+}
+
+func (t testObjectType) WithAttributeTypes(types map[string]attr.Type) attr.AttributesType {
+	return testObjectType{
+		AttrTypes: types,
+	}
+}
+
+func (t testObjectType) AttributeTypes() map[string]attr.Type {
+	return t.AttrTypes
 }
 
 func (t testObjectType) TerraformType(ctx context.Context) tftypes.Type {
 	types := map[string]tftypes.Type{}
-	for k, v := range t.AttributeTypes {
+	for k, v := range t.AttrTypes {
 		types[k] = v.TerraformType(ctx)
 	}
 	return tftypes.Object{
@@ -27,7 +37,7 @@ func (t testObjectType) ValueFromTerraform(ctx context.Context, in tftypes.Value
 		return nil, fmt.Errorf("unexpected type %s", in.Type())
 	}
 	result := &testObjectValue{
-		AttributeTypes: t.AttributeTypes,
+		AttrTypes: t.AttrTypes,
 	}
 	if in.IsNull() {
 		result.Null = true
@@ -42,11 +52,11 @@ func (t testObjectType) ValueFromTerraform(ctx context.Context, in tftypes.Value
 	if err != nil {
 		return nil, err
 	}
-	if len(inVals) != len(t.AttributeTypes) {
-		return nil, fmt.Errorf("expected value to have %d attributes, has %d: %s", len(t.AttributeTypes), len(inVals), in)
+	if len(inVals) != len(t.AttrTypes) {
+		return nil, fmt.Errorf("expected value to have %d attributes, has %d: %s", len(t.AttrTypes), len(inVals), in)
 	}
 	result.Attributes = map[string]attr.Value{}
-	for k, v := range t.AttributeTypes {
+	for k, v := range t.AttrTypes {
 		val, ok := inVals[k]
 		if !ok {
 			return nil, fmt.Errorf("expected value to have attribute %q, doesn't", k)
@@ -65,11 +75,11 @@ func (t testObjectType) Equal(other attr.Type) bool {
 	if !ok {
 		return false
 	}
-	if len(o.AttributeTypes) != len(t.AttributeTypes) {
+	if len(o.AttrTypes) != len(t.AttrTypes) {
 		return false
 	}
-	for k, v := range t.AttributeTypes {
-		ov, ok := o.AttributeTypes[k]
+	for k, v := range t.AttrTypes {
+		ov, ok := o.AttrTypes[k]
 		if !ok {
 			return false
 		}
@@ -80,13 +90,13 @@ func (t testObjectType) Equal(other attr.Type) bool {
 	return true
 }
 
-var _ attr.Type = testObjectType{}
+var _ attr.AttributesType = testObjectType{}
 
 type testObjectValue struct {
-	AttributeTypes map[string]attr.Type
-	Attributes     map[string]attr.Value
-	Unknown        bool
-	Null           bool
+	AttrTypes  map[string]attr.Type
+	Attributes map[string]attr.Value
+	Unknown    bool
+	Null       bool
 }
 
 var _ attr.Value = &testObjectValue{}
@@ -100,7 +110,7 @@ func (t *testObjectValue) ToTerraformValue(ctx context.Context) (interface{}, er
 	}
 	resultVals := map[string]tftypes.Value{}
 	for k, v := range t.Attributes {
-		typ, ok := t.AttributeTypes[k]
+		typ, ok := t.AttrTypes[k]
 		if !ok {
 			return nil, fmt.Errorf("no type for attribute %q", k)
 		}
@@ -115,45 +125,6 @@ func (t *testObjectValue) ToTerraformValue(ctx context.Context) (interface{}, er
 		resultVals[k] = tftypes.NewValue(typ.TerraformType(ctx), val)
 	}
 	return resultVals, nil
-}
-
-func (t *testObjectValue) SetTerraformValue(ctx context.Context, in tftypes.Value) error {
-	t.Unknown = false
-	t.Null = false
-	t.Attributes = map[string]attr.Value{}
-	if !in.Type().Is(tftypes.Object{}) {
-		return fmt.Errorf("unexpected type %s", in.Type())
-	}
-	if !in.IsKnown() {
-		t.Unknown = true
-		return nil
-	}
-	if in.IsNull() {
-		t.Null = true
-		return nil
-	}
-	resultVals := map[string]tftypes.Value{}
-	err := in.As(&resultVals)
-	if err != nil {
-		return err
-	}
-	if len(resultVals) != len(t.AttributeTypes) {
-		return fmt.Errorf("expected %d attributes, got %d", len(t.AttributeTypes), len(resultVals))
-	}
-	attrs := map[string]attr.Value{}
-	for k, v := range resultVals {
-		typ, ok := t.AttributeTypes[k]
-		if !ok {
-			return fmt.Errorf("no type defined for %q", k)
-		}
-		a, err := typ.ValueFromTerraform(ctx, v)
-		if err != nil {
-			return fmt.Errorf("error building value for %q: %w", k, err)
-		}
-		attrs[k] = a
-	}
-	t.Attributes = attrs
-	return nil
 }
 
 func (t *testObjectValue) Equal(other attr.Value) bool {
@@ -173,11 +144,11 @@ func (t *testObjectValue) Equal(other attr.Value) bool {
 	if t.Unknown != o.Unknown {
 		return false
 	}
-	if len(t.AttributeTypes) != len(o.AttributeTypes) {
+	if len(t.AttrTypes) != len(o.AttrTypes) {
 		return false
 	}
-	for k, v := range t.AttributeTypes {
-		ov, ok := o.AttributeTypes[k]
+	for k, v := range t.AttrTypes {
+		ov, ok := o.AttrTypes[k]
 		if !ok {
 			return false
 		}

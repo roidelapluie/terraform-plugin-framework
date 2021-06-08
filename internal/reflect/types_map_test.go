@@ -9,12 +9,22 @@ import (
 )
 
 type testMapType struct {
-	ElementType attr.Type
+	ElemType attr.Type
+}
+
+func (t testMapType) WithElementType(typ attr.Type) attr.ElementType {
+	return testMapType{
+		ElemType: typ,
+	}
+}
+
+func (t testMapType) ElementType() attr.Type {
+	return t.ElemType
 }
 
 func (t testMapType) TerraformType(ctx context.Context) tftypes.Type {
 	return tftypes.Map{
-		AttributeType: t.ElementType.TerraformType(ctx),
+		AttributeType: t.ElemType.TerraformType(ctx),
 	}
 }
 
@@ -23,7 +33,7 @@ func (t testMapType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (
 		return nil, fmt.Errorf("unexpected type %s", in.Type())
 	}
 	result := &testMapValue{
-		ElementType: t.ElementType,
+		ElemType: t.ElemType,
 	}
 	if in.IsNull() {
 		result.Null = true
@@ -40,7 +50,7 @@ func (t testMapType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (
 	}
 	result.Elements = map[string]attr.Value{}
 	for k, v := range inVals {
-		res, err := t.ElementType.ValueFromTerraform(ctx, v)
+		res, err := t.ElemType.ValueFromTerraform(ctx, v)
 		if err != nil {
 			return nil, fmt.Errorf("error converting %q to attr.Value: %w", k, err)
 		}
@@ -54,16 +64,16 @@ func (t testMapType) Equal(other attr.Type) bool {
 	if !ok {
 		return false
 	}
-	return t.ElementType.Equal(o.ElementType)
+	return t.ElemType.Equal(o.ElemType)
 }
 
-var _ attr.Type = testMapType{}
+var _ attr.ElementType = testMapType{}
 
 type testMapValue struct {
-	ElementType attr.Type
-	Elements    map[string]attr.Value
-	Unknown     bool
-	Null        bool
+	ElemType attr.Type
+	Elements map[string]attr.Value
+	Unknown  bool
+	Null     bool
 }
 
 var _ attr.Value = &testMapValue{}
@@ -81,45 +91,13 @@ func (t *testMapValue) ToTerraformValue(ctx context.Context) (interface{}, error
 		if err != nil {
 			return nil, fmt.Errorf("error generating terraform value for %q: %w", k, err)
 		}
-		err = tftypes.ValidateValue(t.ElementType.TerraformType(ctx), val)
+		err = tftypes.ValidateValue(t.ElemType.TerraformType(ctx), val)
 		if err != nil {
 			return nil, fmt.Errorf("error validating terraform value for %q: %w", k, err)
 		}
-		resultVals[k] = tftypes.NewValue(t.ElementType.TerraformType(ctx), val)
+		resultVals[k] = tftypes.NewValue(t.ElemType.TerraformType(ctx), val)
 	}
 	return resultVals, nil
-}
-
-func (t *testMapValue) SetTerraformValue(ctx context.Context, in tftypes.Value) error {
-	t.Unknown = false
-	t.Null = false
-	t.Elements = map[string]attr.Value{}
-	if !in.Type().Is(tftypes.Map{}) {
-		return fmt.Errorf("unexpected type %s", in.Type())
-	}
-	if !in.IsKnown() {
-		t.Unknown = true
-		return nil
-	}
-	if in.IsNull() {
-		t.Null = true
-		return nil
-	}
-	resultVals := map[string]tftypes.Value{}
-	err := in.As(&resultVals)
-	if err != nil {
-		return err
-	}
-	elems := map[string]attr.Value{}
-	for k, v := range resultVals {
-		a, err := t.ElementType.ValueFromTerraform(ctx, v)
-		if err != nil {
-			return fmt.Errorf("error building value for %q: %w", k, err)
-		}
-		elems[k] = a
-	}
-	t.Elements = elems
-	return nil
 }
 
 func (t *testMapValue) Equal(other attr.Value) bool {
@@ -139,7 +117,7 @@ func (t *testMapValue) Equal(other attr.Value) bool {
 	if t.Unknown != o.Unknown {
 		return false
 	}
-	if !t.ElementType.Equal(o.ElementType) {
+	if !t.ElemType.Equal(o.ElemType) {
 		return false
 	}
 	if len(t.Elements) != len(o.Elements) {

@@ -9,13 +9,23 @@ import (
 )
 
 type testListType struct {
-	ElementType attr.Type
+	ElemType attr.Type
 }
 
 func (t testListType) TerraformType(ctx context.Context) tftypes.Type {
 	return tftypes.List{
-		ElementType: t.ElementType.TerraformType(ctx),
+		ElementType: t.ElemType.TerraformType(ctx),
 	}
+}
+
+func (t testListType) WithElementType(typ attr.Type) attr.ElementType {
+	return testListType{
+		ElemType: typ,
+	}
+}
+
+func (t testListType) ElementType() attr.Type {
+	return t.ElemType
 }
 
 func (t testListType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
@@ -23,7 +33,7 @@ func (t testListType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 		return nil, fmt.Errorf("unexpected type %s", in.Type())
 	}
 	result := &testListValue{
-		ElementType: t.ElementType,
+		ElemType: t.ElemType,
 	}
 	if in.IsNull() {
 		result.Null = true
@@ -40,7 +50,7 @@ func (t testListType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 	}
 	result.Elements = []attr.Value{}
 	for pos, v := range inVals {
-		res, err := t.ElementType.ValueFromTerraform(ctx, v)
+		res, err := t.ElemType.ValueFromTerraform(ctx, v)
 		if err != nil {
 			return nil, fmt.Errorf("error converting element %d to attr.Value: %w", pos, err)
 		}
@@ -54,16 +64,16 @@ func (t testListType) Equal(other attr.Type) bool {
 	if !ok {
 		return false
 	}
-	return t.ElementType.Equal(o.ElementType)
+	return t.ElemType.Equal(o.ElemType)
 }
 
-var _ attr.Type = testListType{}
+var _ attr.ElementType = testListType{}
 
 type testListValue struct {
-	ElementType attr.Type
-	Elements    []attr.Value
-	Unknown     bool
-	Null        bool
+	ElemType attr.Type
+	Elements []attr.Value
+	Unknown  bool
+	Null     bool
 }
 
 var _ attr.Value = &testListValue{}
@@ -81,45 +91,13 @@ func (t *testListValue) ToTerraformValue(ctx context.Context) (interface{}, erro
 		if err != nil {
 			return nil, fmt.Errorf("error generating terraform value for element %d: %w", pos, err)
 		}
-		err = tftypes.ValidateValue(t.ElementType.TerraformType(ctx), val)
+		err = tftypes.ValidateValue(t.ElemType.TerraformType(ctx), val)
 		if err != nil {
 			return nil, fmt.Errorf("error validating terraform value for element %d: %w", pos, err)
 		}
-		resultVals = append(resultVals, tftypes.NewValue(t.ElementType.TerraformType(ctx), val))
+		resultVals = append(resultVals, tftypes.NewValue(t.ElemType.TerraformType(ctx), val))
 	}
 	return resultVals, nil
-}
-
-func (t *testListValue) SetTerraformValue(ctx context.Context, in tftypes.Value) error {
-	t.Unknown = false
-	t.Null = false
-	t.Elements = []attr.Value{}
-	if !in.Type().Is(tftypes.List{}) {
-		return fmt.Errorf("unexpected type %s", in.Type())
-	}
-	if !in.IsKnown() {
-		t.Unknown = true
-		return nil
-	}
-	if in.IsNull() {
-		t.Null = true
-		return nil
-	}
-	resultVals := []tftypes.Value{}
-	err := in.As(&resultVals)
-	if err != nil {
-		return err
-	}
-	elems := []attr.Value{}
-	for pos, v := range resultVals {
-		a, err := t.ElementType.ValueFromTerraform(ctx, v)
-		if err != nil {
-			return fmt.Errorf("error building value for element %d: %w", pos, err)
-		}
-		elems = append(elems, a)
-	}
-	t.Elements = elems
-	return nil
 }
 
 func (t *testListValue) Equal(other attr.Value) bool {
@@ -139,7 +117,7 @@ func (t *testListValue) Equal(other attr.Value) bool {
 	if t.Unknown != o.Unknown {
 		return false
 	}
-	if !t.ElementType.Equal(o.ElementType) {
+	if !t.ElemType.Equal(o.ElemType) {
 		return false
 	}
 	if len(t.Elements) != len(o.Elements) {

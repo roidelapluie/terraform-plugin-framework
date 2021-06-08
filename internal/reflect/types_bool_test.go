@@ -43,7 +43,6 @@ type testBoolValue struct {
 	Unknown bool
 	Null    bool
 	Value   bool
-	setErr  error
 }
 
 var _ attr.Value = &testBoolValue{}
@@ -56,27 +55,6 @@ func (t *testBoolValue) ToTerraformValue(_ context.Context) (interface{}, error)
 		return nil, nil
 	}
 	return t.Value, nil
-}
-
-func (t *testBoolValue) SetTerraformValue(_ context.Context, in tftypes.Value) error {
-	if t.setErr != nil {
-		return t.setErr
-	}
-	t.Unknown = false
-	t.Null = false
-	t.Value = false
-	if !in.Type().Is(tftypes.Bool) {
-		return fmt.Errorf("unexpected type %s", tftypes.Bool)
-	}
-	if !in.IsKnown() {
-		t.Unknown = true
-		return nil
-	}
-	if !in.IsNull() {
-		t.Null = true
-		return nil
-	}
-	return in.As(&t.Value)
 }
 
 func (t *testBoolValue) Equal(other attr.Value) bool {

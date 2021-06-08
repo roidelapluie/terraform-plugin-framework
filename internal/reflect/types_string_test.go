@@ -9,7 +9,6 @@ import (
 )
 
 type testStringType struct {
-	setErr error
 }
 
 var _ attr.Type = testStringType{}
@@ -22,9 +21,7 @@ func (t testStringType) ValueFromTerraform(_ context.Context, in tftypes.Value) 
 	if !in.Type().Is(tftypes.String) {
 		return nil, fmt.Errorf("unexpected type %s", tftypes.String)
 	}
-	result := &testStringValue{
-		setErr: t.setErr,
-	}
+	result := &testStringValue{}
 	if !in.IsKnown() {
 		result.Unknown = true
 		return result, nil
@@ -49,7 +46,6 @@ type testStringValue struct {
 	Unknown bool
 	Null    bool
 	Value   string
-	setErr  error
 }
 
 var _ attr.Value = &testStringValue{}
@@ -62,27 +58,6 @@ func (t *testStringValue) ToTerraformValue(_ context.Context) (interface{}, erro
 		return nil, nil
 	}
 	return t.Value, nil
-}
-
-func (t *testStringValue) SetTerraformValue(_ context.Context, in tftypes.Value) error {
-	if t.setErr != nil {
-		return t.setErr
-	}
-	t.Unknown = false
-	t.Null = false
-	t.Value = ""
-	if !in.Type().Is(tftypes.String) {
-		return fmt.Errorf("unexpected type %s", tftypes.String)
-	}
-	if !in.IsKnown() {
-		t.Unknown = true
-		return nil
-	}
-	if !in.IsNull() {
-		t.Null = true
-		return nil
-	}
-	return in.As(&t.Value)
 }
 
 func (t *testStringValue) Equal(other attr.Value) bool {
