@@ -1,4 +1,4 @@
-package proto6
+package schema
 
 import (
 	"context"
@@ -9,15 +9,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-// Schema returns the *tfprotov6.Schema equivalent of a Schema. At least
+// ToProto6 returns the *tfprotov6.Schema equivalent of a Schema. At least
 // one attribute must be set in the schema, or an error will be returned.
-func Schema(ctx context.Context, s Schema) (*tfprotov6.Schema, error) {
+func (s Schema) ToProto6(ctx context.Context) (*tfprotov6.Schema, error) {
 	result := &tfprotov6.Schema{
 		Version: s.Version,
 	}
 	var attrs []*tfprotov6.SchemaAttribute
 	for name, attr := range s.Attributes {
-		a, err := Attribute(ctx, name, attr, tftypes.NewAttributePath().WithAttributeName(name))
+		a, err := attr.ToProto6(ctx, name, tftypes.NewAttributePath().WithAttributeName(name))
 		if err != nil {
 			return nil, err
 		}
@@ -55,33 +55,33 @@ func Schema(ctx context.Context, s Schema) (*tfprotov6.Schema, error) {
 // Attribute returns the *tfprotov6.SchemaAttribute equivalent of a
 // Attribute. Errors will be tftypes.AttributePathErrors based on
 // `path`. `name` is the name of the attribute.
-func Attribute(ctx context.Context, name string, attr Attribute, path *tftypes.AttributePath) (*tfprotov6.SchemaAttribute, error) {
+func (t Attribute) ToProto6(ctx context.Context, name string, path *tftypes.AttributePath) (*tfprotov6.SchemaAttribute, error) {
 	a := &tfprotov6.SchemaAttribute{
 		Name:      name,
-		Required:  attr.Required,
-		Optional:  attr.Optional,
-		Computed:  attr.Computed,
-		Sensitive: attr.Sensitive,
+		Required:  t.Required,
+		Optional:  t.Optional,
+		Computed:  t.Computed,
+		Sensitive: t.Sensitive,
 	}
-	if attr.DeprecationMessage != "" {
+	if t.DeprecationMessage != "" {
 		a.Deprecated = true
 	}
-	if attr.Description != "" {
-		a.Description = attr.Description
+	if t.Description != "" {
+		a.Description = t.Description
 		a.DescriptionKind = tfprotov6.StringKindPlain
 	}
-	if attr.MarkdownDescription != "" {
-		a.Description = attr.MarkdownDescription
+	if t.MarkdownDescription != "" {
+		a.Description = t.MarkdownDescription
 		a.DescriptionKind = tfprotov6.StringKindMarkdown
 	}
-	if attr.Type != nil && attr.Attributes == nil {
-		a.Type = attr.Type.TerraformType(ctx)
-	} else if attr.Attributes != nil && len(attr.Attributes.GetAttributes()) > 0 && attr.Type == nil {
+	if t.Type != nil && t.Attributes == nil {
+		a.Type = t.Type.TerraformType(ctx)
+	} else if t.Attributes != nil && len(t.Attributes.GetAttributes()) > 0 && t.Type == nil {
 		object := &tfprotov6.SchemaObject{
-			MinItems: attr.Attributes.GetMinItems(),
-			MaxItems: attr.Attributes.GetMaxItems(),
+			MinItems: t.Attributes.GetMinItems(),
+			MaxItems: t.Attributes.GetMaxItems(),
 		}
-		nm := attr.Attributes.GetNestingMode()
+		nm := t.Attributes.GetNestingMode()
 		switch nm {
 		case NestingModeSingle:
 			object.Nesting = tfprotov6.SchemaObjectNestingModeSingle
@@ -94,9 +94,9 @@ func Attribute(ctx context.Context, name string, attr Attribute, path *tftypes.A
 		default:
 			return nil, path.NewErrorf("unrecognized nesting mode %v", nm)
 		}
-		attrs := attr.Attributes.GetAttributes()
+		attrs := t.Attributes.GetAttributes()
 		for nestedName, nestedAttr := range attrs {
-			nestedA, err := Attribute(ctx, nestedName, nestedAttr, path.WithAttributeName(nestedName))
+			nestedA, err := nestedAttr.ToProto6(ctx, nestedName, path.WithAttributeName(nestedName))
 			if err != nil {
 				return nil, err
 			}
@@ -112,9 +112,9 @@ func Attribute(ctx context.Context, name string, attr Attribute, path *tftypes.A
 			return object.Attributes[i].Name < object.Attributes[j].Name
 		})
 		a.NestedType = object
-	} else if attr.Attributes != nil && len(attr.Attributes.GetAttributes()) > 0 && attr.Type != nil {
+	} else if t.Attributes != nil && len(t.Attributes.GetAttributes()) > 0 && t.Type != nil {
 		return nil, path.NewErrorf("can't have both Attributes and Type set")
-	} else if (attr.Attributes == nil || len(attr.Attributes.GetAttributes()) < 1) && attr.Type == nil {
+	} else if (t.Attributes == nil || len(t.Attributes.GetAttributes()) < 1) && t.Type == nil {
 		return nil, path.NewErrorf("must have Attributes or Type set")
 	}
 	return a, nil

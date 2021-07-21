@@ -1,11 +1,10 @@
-package proto6
+package schema
 
 import (
 	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/google/go-cmp/cmp"
@@ -17,20 +16,20 @@ func TestSchema(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
-		input       schema.Schema
+		input       Schema
 		expected    *tfprotov6.Schema
 		expectedErr string
 	}
 
 	tests := map[string]testCase{
 		"empty-val": {
-			input:       schema.Schema{},
+			input:       Schema{},
 			expectedErr: "must have at least one attribute in the schema",
 		},
 		"basic-attrs": {
-			input: schema.Schema{
+			input: Schema{
 				Version: 1,
-				Attributes: map[string]schema.Attribute{
+				Attributes: map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Required: true,
@@ -69,9 +68,9 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		"complex-attrs": {
-			input: schema.Schema{
+			input: Schema{
 				Version: 2,
-				Attributes: map[string]schema.Attribute{
+				Attributes: map[string]Attribute{
 					"list": {
 						Type:     types.ListType{ElemType: types.StringType},
 						Required: true,
@@ -112,11 +111,11 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		"nested-attrs": {
-			input: schema.Schema{
+			input: Schema{
 				Version: 3,
-				Attributes: map[string]schema.Attribute{
+				Attributes: map[string]Attribute{
 					"single": {
-						Attributes: schema.SingleNestedAttributes(map[string]schema.Attribute{
+						Attributes: SingleNestedAttributes(map[string]Attribute{
 							"string": {
 								Type:     types.StringType,
 								Required: true,
@@ -138,7 +137,7 @@ func TestSchema(t *testing.T) {
 						Required: true,
 					},
 					"list": {
-						Attributes: schema.ListNestedAttributes(map[string]schema.Attribute{
+						Attributes: ListNestedAttributes(map[string]Attribute{
 							"string": {
 								Type:     types.StringType,
 								Required: true,
@@ -156,11 +155,11 @@ func TestSchema(t *testing.T) {
 								Computed: true,
 								Optional: true,
 							},
-						}, schema.ListNestedAttributesOptions{}),
+						}, ListNestedAttributesOptions{}),
 						Optional: true,
 					},
 					"set": {
-						Attributes: schema.SetNestedAttributes(map[string]schema.Attribute{
+						Attributes: SetNestedAttributes(map[string]Attribute{
 							"string": {
 								Type:     types.StringType,
 								Required: true,
@@ -178,11 +177,11 @@ func TestSchema(t *testing.T) {
 								Computed: true,
 								Optional: true,
 							},
-						}, schema.SetNestedAttributesOptions{}),
+						}, SetNestedAttributesOptions{}),
 						Computed: true,
 					},
 					"map": {
-						Attributes: schema.MapNestedAttributes(map[string]schema.Attribute{
+						Attributes: MapNestedAttributes(map[string]Attribute{
 							"string": {
 								Type:     types.StringType,
 								Required: true,
@@ -200,7 +199,7 @@ func TestSchema(t *testing.T) {
 								Computed: true,
 								Optional: true,
 							},
-						}, schema.MapNestedAttributesOptions{}),
+						}, MapNestedAttributesOptions{}),
 						Optional: true,
 						Computed: true,
 					},
@@ -336,9 +335,9 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		"markdown-description": {
-			input: schema.Schema{
+			input: Schema{
 				Version: 1,
-				Attributes: map[string]schema.Attribute{
+				Attributes: map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Required: true,
@@ -362,9 +361,9 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		"plaintext-description": {
-			input: schema.Schema{
+			input: Schema{
 				Version: 1,
-				Attributes: map[string]schema.Attribute{
+				Attributes: map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Required: true,
@@ -388,9 +387,9 @@ func TestSchema(t *testing.T) {
 			},
 		},
 		"deprecated": {
-			input: schema.Schema{
+			input: Schema{
 				Version: 1,
-				Attributes: map[string]schema.Attribute{
+				Attributes: map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Required: true,
@@ -419,7 +418,7 @@ func TestSchema(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := Schema(context.Background(), tc.input)
+			got, err := tc.input.ToProto6(context.Background())
 			if err != nil {
 				if tc.expectedErr == "" {
 					t.Errorf("Unexpected error: %s", err)
@@ -449,7 +448,7 @@ func TestAttribute(t *testing.T) {
 
 	type testCase struct {
 		name        string
-		attr        schema.Attribute
+		attr        Attribute
 		path        *tftypes.AttributePath
 		expected    *tfprotov6.SchemaAttribute
 		expectedErr string
@@ -458,7 +457,7 @@ func TestAttribute(t *testing.T) {
 	tests := map[string]testCase{
 		"deprecated": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:               types.StringType,
 				Optional:           true,
 				DeprecationMessage: "deprecated, use new_string instead",
@@ -473,7 +472,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"description-plain": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:        types.StringType,
 				Optional:    true,
 				Description: "A string attribute",
@@ -489,7 +488,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"description-markdown": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:                types.StringType,
 				Optional:            true,
 				MarkdownDescription: "A string attribute",
@@ -505,7 +504,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"description-both": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:                types.StringType,
 				Optional:            true,
 				Description:         "A string attribute",
@@ -522,7 +521,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-string": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.StringType,
 				Optional: true,
 			},
@@ -535,7 +534,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-bool": {
 			name: "bool",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.BoolType,
 				Optional: true,
 			},
@@ -548,7 +547,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-number": {
 			name: "number",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.NumberType,
 				Optional: true,
 			},
@@ -561,7 +560,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-list": {
 			name: "list",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.ListType{ElemType: types.NumberType},
 				Optional: true,
 			},
@@ -574,7 +573,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-object": {
 			name: "object",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type: types.ObjectType{AttrTypes: map[string]attr.Type{
 					"foo": types.StringType,
 					"bar": types.NumberType,
@@ -598,7 +597,7 @@ func TestAttribute(t *testing.T) {
 		// TODO: add tuple attribute when we support it
 		"required": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.StringType,
 				Required: true,
 			},
@@ -611,7 +610,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"optional": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.StringType,
 				Optional: true,
 			},
@@ -624,7 +623,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"computed": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.StringType,
 				Computed: true,
 			},
@@ -637,7 +636,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"optional-computed": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:     types.StringType,
 				Computed: true,
 				Optional: true,
@@ -652,7 +651,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"sensitive": {
 			name: "string",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type:      types.StringType,
 				Optional:  true,
 				Sensitive: true,
@@ -667,8 +666,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-single": {
 			name: "single_nested",
-			attr: schema.Attribute{
-				Attributes: schema.SingleNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: SingleNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -705,8 +704,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-list": {
 			name: "list_nested",
-			attr: schema.Attribute{
-				Attributes: schema.ListNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: ListNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -716,7 +715,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.ListNestedAttributesOptions{}),
+				}, ListNestedAttributesOptions{}),
 				Optional: true,
 			},
 			path: tftypes.NewAttributePath(),
@@ -743,8 +742,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-list-min": {
 			name: "list_nested",
-			attr: schema.Attribute{
-				Attributes: schema.ListNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: ListNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -754,7 +753,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.ListNestedAttributesOptions{
+				}, ListNestedAttributesOptions{
 					MinItems: 1,
 				}),
 				Optional: true,
@@ -784,8 +783,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-list-max": {
 			name: "list_nested",
-			attr: schema.Attribute{
-				Attributes: schema.ListNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: ListNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -795,7 +794,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.ListNestedAttributesOptions{
+				}, ListNestedAttributesOptions{
 					MaxItems: 1,
 				}),
 				Optional: true,
@@ -825,8 +824,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-list-minmax": {
 			name: "list_nested",
-			attr: schema.Attribute{
-				Attributes: schema.ListNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: ListNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -836,7 +835,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.ListNestedAttributesOptions{
+				}, ListNestedAttributesOptions{
 					MinItems: 1,
 					MaxItems: 10,
 				}),
@@ -868,8 +867,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-set": {
 			name: "set_nested",
-			attr: schema.Attribute{
-				Attributes: schema.SetNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: SetNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -879,7 +878,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.SetNestedAttributesOptions{}),
+				}, SetNestedAttributesOptions{}),
 				Optional: true,
 			},
 			path: tftypes.NewAttributePath(),
@@ -906,8 +905,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-set-min": {
 			name: "set_nested",
-			attr: schema.Attribute{
-				Attributes: schema.SetNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: SetNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -917,7 +916,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.SetNestedAttributesOptions{
+				}, SetNestedAttributesOptions{
 					MinItems: 1,
 				}),
 				Optional: true,
@@ -947,8 +946,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-set-max": {
 			name: "set_nested",
-			attr: schema.Attribute{
-				Attributes: schema.SetNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: SetNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -958,7 +957,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.SetNestedAttributesOptions{
+				}, SetNestedAttributesOptions{
 					MaxItems: 1,
 				}),
 				Optional: true,
@@ -988,8 +987,8 @@ func TestAttribute(t *testing.T) {
 		},
 		"nested-attr-set-minmax": {
 			name: "set_nested",
-			attr: schema.Attribute{
-				Attributes: schema.SetNestedAttributes(map[string]schema.Attribute{
+			attr: Attribute{
+				Attributes: SetNestedAttributes(map[string]Attribute{
 					"string": {
 						Type:     types.StringType,
 						Optional: true,
@@ -999,7 +998,7 @@ func TestAttribute(t *testing.T) {
 						Computed:  true,
 						Sensitive: true,
 					},
-				}, schema.SetNestedAttributesOptions{
+				}, SetNestedAttributesOptions{
 					MinItems: 1,
 					MaxItems: 10,
 				}),
@@ -1031,9 +1030,9 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-and-nested-attr-set": {
 			name: "whoops",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Type: types.StringType,
-				Attributes: schema.SingleNestedAttributes(map[string]schema.Attribute{
+				Attributes: SingleNestedAttributes(map[string]Attribute{
 					"testing": {
 						Type:     types.StringType,
 						Optional: true,
@@ -1046,7 +1045,7 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-and-nested-attr-unset": {
 			name: "whoops",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Optional: true,
 			},
 			path:        tftypes.NewAttributePath(),
@@ -1054,9 +1053,9 @@ func TestAttribute(t *testing.T) {
 		},
 		"attr-and-nested-attr-empty": {
 			name: "whoops",
-			attr: schema.Attribute{
+			attr: Attribute{
 				Optional:   true,
-				Attributes: schema.SingleNestedAttributes(map[string]schema.Attribute{}),
+				Attributes: SingleNestedAttributes(map[string]Attribute{}),
 			},
 			path:        tftypes.NewAttributePath(),
 			expectedErr: "must have Attributes or Type set",
@@ -1068,7 +1067,7 @@ func TestAttribute(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := Attribute(context.Background(), tc.name, tc.attr, tc.path)
+			got, err := tc.attr.ToProto6(context.Background(), tc.name, tc.path)
 			if err != nil {
 				if tc.expectedErr == "" {
 					t.Errorf("Unexpected error: %s", err)
