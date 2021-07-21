@@ -1,4 +1,4 @@
-package tfsdk
+package values
 
 import (
 	"context"

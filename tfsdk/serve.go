@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/internal/proto6"
 	"github.com/hashicorp/terraform-plugin-framework/schema"
+	"github.com/hashicorp/terraform-plugin-framework/values"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	tf6server "github.com/hashicorp/terraform-plugin-go/tfprotov6/server"
@@ -249,7 +250,7 @@ func (s *server) ConfigureProvider(ctx context.Context, req *tfprotov6.Configure
 	}
 	r := ConfigureProviderRequest{
 		TerraformVersion: req.TerraformVersion,
-		Config: Config{
+		Config: values.Config{
 			Raw:    config,
 			Schema: schema,
 		},
@@ -315,7 +316,7 @@ func (s *server) ReadResource(ctx context.Context, req *tfprotov6.ReadResourceRe
 		return resp, nil
 	}
 	readReq := ReadResourceRequest{
-		State: State{
+		State: values.State{
 			Raw:    state,
 			Schema: resourceSchema,
 		},
@@ -328,7 +329,7 @@ func (s *server) ReadResource(ctx context.Context, req *tfprotov6.ReadResourceRe
 				return resp, nil
 			}
 		}
-		readReq.ProviderMeta = Config{
+		readReq.ProviderMeta = values.Config{
 			Schema: pmSchema,
 			Raw:    tftypes.NewValue(pmSchema.TerraformType(ctx), nil),
 		}
@@ -347,7 +348,7 @@ func (s *server) ReadResource(ctx context.Context, req *tfprotov6.ReadResourceRe
 		}
 	}
 	readResp := ReadResourceResponse{
-		State: State{
+		State: values.State{
 			Schema: resourceSchema,
 		},
 		Diagnostics: resp.Diagnostics,
@@ -545,11 +546,11 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 	switch {
 	case create && !update && !destroy:
 		createReq := CreateResourceRequest{
-			Config: Config{
+			Config: values.Config{
 				Schema: resourceSchema,
 				Raw:    config,
 			},
-			Plan: Plan{
+			Plan: values.Plan{
 				Schema: resourceSchema,
 				Raw:    plan,
 			},
@@ -562,7 +563,7 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 					return resp, nil
 				}
 			}
-			createReq.ProviderMeta = Config{
+			createReq.ProviderMeta = values.Config{
 				Schema: pmSchema,
 				Raw:    tftypes.NewValue(pmSchema.TerraformType(ctx), nil),
 			}
@@ -581,7 +582,7 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 			}
 		}
 		createResp := CreateResourceResponse{
-			State: State{
+			State: values.State{
 				Schema: resourceSchema,
 			},
 			Diagnostics: resp.Diagnostics,
@@ -605,15 +606,15 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 		return resp, nil
 	case !create && update && !destroy:
 		updateReq := UpdateResourceRequest{
-			Config: Config{
+			Config: values.Config{
 				Schema: resourceSchema,
 				Raw:    config,
 			},
-			Plan: Plan{
+			Plan: values.Plan{
 				Schema: resourceSchema,
 				Raw:    plan,
 			},
-			State: State{
+			State: values.State{
 				Schema: resourceSchema,
 				Raw:    priorState,
 			},
@@ -626,7 +627,7 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 					return resp, nil
 				}
 			}
-			updateReq.ProviderMeta = Config{
+			updateReq.ProviderMeta = values.Config{
 				Schema: pmSchema,
 				Raw:    tftypes.NewValue(pmSchema.TerraformType(ctx), nil),
 			}
@@ -645,7 +646,7 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 			}
 		}
 		updateResp := UpdateResourceResponse{
-			State: State{
+			State: values.State{
 				Schema: resourceSchema,
 			},
 			Diagnostics: resp.Diagnostics,
@@ -668,7 +669,7 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 		resp.NewState = &newState
 	case !create && !update && destroy:
 		destroyReq := DeleteResourceRequest{
-			State: State{
+			State: values.State{
 				Schema: resourceSchema,
 				Raw:    priorState,
 			},
@@ -681,7 +682,7 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 					return resp, nil
 				}
 			}
-			destroyReq.ProviderMeta = Config{
+			destroyReq.ProviderMeta = values.Config{
 				Schema: pmSchema,
 				Raw:    tftypes.NewValue(pmSchema.TerraformType(ctx), nil),
 			}
@@ -700,7 +701,7 @@ func (s *server) ApplyResourceChange(ctx context.Context, req *tfprotov6.ApplyRe
 			}
 		}
 		destroyResp := DeleteResourceResponse{
-			State: State{
+			State: values.State{
 				Schema: resourceSchema,
 			},
 			Diagnostics: resp.Diagnostics,
@@ -777,7 +778,7 @@ func (s *server) ReadDataSource(ctx context.Context, req *tfprotov6.ReadDataSour
 		return resp, nil
 	}
 	readReq := ReadDataSourceRequest{
-		Config: Config{
+		Config: values.Config{
 			Raw:    config,
 			Schema: dataSourceSchema,
 		},
@@ -790,7 +791,7 @@ func (s *server) ReadDataSource(ctx context.Context, req *tfprotov6.ReadDataSour
 				return resp, nil
 			}
 		}
-		readReq.ProviderMeta = Config{
+		readReq.ProviderMeta = values.Config{
 			Schema: pmSchema,
 			Raw:    tftypes.NewValue(pmSchema.TerraformType(ctx), nil),
 		}
@@ -809,7 +810,7 @@ func (s *server) ReadDataSource(ctx context.Context, req *tfprotov6.ReadDataSour
 		}
 	}
 	readResp := ReadDataSourceResponse{
-		State: State{
+		State: values.State{
 			Schema: dataSourceSchema,
 		},
 		Diagnostics: resp.Diagnostics,
