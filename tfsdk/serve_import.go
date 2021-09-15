@@ -111,7 +111,7 @@ func (s *server) importResourceState(ctx context.Context, req *tfprotov6.ImportR
 		return
 	}
 
-	fmt.Fprintln("ending import resource state for", req.TypeName)
+	fmt.Fprintln(f, "ending import resource state for", req.TypeName)
 	resp.ImportedResources = []importedResource{
 		{
 			State:    importResp.State,
@@ -127,7 +127,7 @@ func (s *server) ImportResourceState(ctx context.Context, req *tfprotov6.ImportR
 		panic(err)
 	}
 	defer f.Close()
-	fmt.Fprintln("starting import resource state for", req.TypeName)
+	fmt.Fprintln(f, "starting import resource state for", req.TypeName)
 	ctx = s.registerContext(ctx)
 	resp := &importResourceStateResponse{}
 
