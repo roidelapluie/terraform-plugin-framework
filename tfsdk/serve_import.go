@@ -20,7 +20,7 @@ type importedResource struct {
 	TypeName string
 }
 
-func (r importedResource) toTfprotov6(ctx context.Context) (*tfprotov6.ImportedResource, diag.Diagnostics) {
+func (r importedResource) toTfprotov6(ctx context.Context, f *os.File) (*tfprotov6.ImportedResource, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	irProto6 := &tfprotov6.ImportedResource{
 		Private:  r.Private,
@@ -39,6 +39,8 @@ func (r importedResource) toTfprotov6(ctx context.Context) (*tfprotov6.ImportedR
 
 	irProto6.State = &stateProto6
 
+	fmt.Fprintln(f, "converted imported resource "+irProto6.TypeName)
+
 	return irProto6, diags
 }
 
@@ -48,13 +50,15 @@ type importResourceStateResponse struct {
 	ImportedResources []importedResource
 }
 
-func (r importResourceStateResponse) toTfprotov6(ctx context.Context) *tfprotov6.ImportResourceStateResponse {
+func (r importResourceStateResponse) toTfprotov6(ctx context.Context, f *os.File) *tfprotov6.ImportResourceStateResponse {
 	resp := &tfprotov6.ImportResourceStateResponse{
 		Diagnostics: r.Diagnostics.ToTfprotov6Diagnostics(),
 	}
 
 	for _, ir := range r.ImportedResources {
-		irProto6, diags := ir.toTfprotov6(ctx)
+		irProto6, diags := ir.toTfprotov6(ctx, f)
+
+		fmt.Fprintln(f, "converted imported resource "+irProto6.TypeName+" to protocol types")
 		resp.Diagnostics = append(resp.Diagnostics, diags.ToTfprotov6Diagnostics()...)
 		resp.ImportedResources = append(resp.ImportedResources, irProto6)
 	}
@@ -133,5 +137,5 @@ func (s *server) ImportResourceState(ctx context.Context, req *tfprotov6.ImportR
 
 	s.importResourceState(ctx, req, resp, f)
 
-	return resp.toTfprotov6(ctx), nil
+	return resp.toTfprotov6(ctx, f), nil
 }
