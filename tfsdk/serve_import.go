@@ -2,18 +2,13 @@ package tfsdk
 
 import (
 	"context"
+	"fmt"
 	"os"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
-
-func init() {
-	hclog.DefaultOutput = os.Stderr
-	hclog.DefaultLevel = hclog.Trace
-}
 
 // importedResource represents a resource that was imported.
 //
@@ -67,7 +62,7 @@ func (r importResourceStateResponse) toTfprotov6(ctx context.Context) *tfprotov6
 	return resp
 }
 
-func (s *server) importResourceState(ctx context.Context, req *tfprotov6.ImportResourceStateRequest, resp *importResourceStateResponse) {
+func (s *server) importResourceState(ctx context.Context, req *tfprotov6.ImportResourceStateRequest, resp *importResourceStateResponse, f *os.File) {
 	resourceType, diags := s.getResourceType(ctx, req.TypeName)
 	resp.Diagnostics.Append(diags...)
 
@@ -116,7 +111,7 @@ func (s *server) importResourceState(ctx context.Context, req *tfprotov6.ImportR
 		return
 	}
 
-	hclog.Default().Trace("ending import resource state", "resource_type", req.TypeName)
+	fmt.Fprintln("ending import resource state for", req.TypeName)
 	resp.ImportedResources = []importedResource{
 		{
 			State:    importResp.State,
@@ -127,11 +122,16 @@ func (s *server) importResourceState(ctx context.Context, req *tfprotov6.ImportR
 
 // ImportResourceState satisfies the tfprotov6.ProviderServer interface.
 func (s *server) ImportResourceState(ctx context.Context, req *tfprotov6.ImportResourceStateRequest) (*tfprotov6.ImportResourceStateResponse, error) {
-	hclog.Default().Trace("starting import resource state", "resource_type", req.TypeName)
+	f, err := os.Create("/tmp/framework-import.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	fmt.Fprintln("starting import resource state for", req.TypeName)
 	ctx = s.registerContext(ctx)
 	resp := &importResourceStateResponse{}
 
-	s.importResourceState(ctx, req, resp)
+	s.importResourceState(ctx, req, resp, f)
 
 	return resp.toTfprotov6(ctx), nil
 }
