@@ -2,11 +2,18 @@ package tfsdk
 
 import (
 	"context"
+	"os"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
+
+func init() {
+	hclog.DefaultOutput = os.Stderr
+	hclog.DefaultLevel = hclog.Trace
+}
 
 // importedResource represents a resource that was imported.
 //
@@ -109,6 +116,7 @@ func (s *server) importResourceState(ctx context.Context, req *tfprotov6.ImportR
 		return
 	}
 
+	hclog.Default().Trace("ending import resource state", "resource_type", req.TypeName)
 	resp.ImportedResources = []importedResource{
 		{
 			State:    importResp.State,
@@ -119,6 +127,7 @@ func (s *server) importResourceState(ctx context.Context, req *tfprotov6.ImportR
 
 // ImportResourceState satisfies the tfprotov6.ProviderServer interface.
 func (s *server) ImportResourceState(ctx context.Context, req *tfprotov6.ImportResourceStateRequest) (*tfprotov6.ImportResourceStateResponse, error) {
+	hclog.Default().Trace("starting import resource state", "resource_type", req.TypeName)
 	ctx = s.registerContext(ctx)
 	resp := &importResourceStateResponse{}
 
