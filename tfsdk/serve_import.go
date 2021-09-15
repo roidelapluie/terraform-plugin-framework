@@ -57,9 +57,12 @@ func (r importResourceStateResponse) toTfprotov6(ctx context.Context, f *os.File
 
 	for _, ir := range r.ImportedResources {
 		irProto6, diags := ir.toTfprotov6(ctx, f)
+		resp.Diagnostics = append(resp.Diagnostics, diags.ToTfprotov6Diagnostics()...)
+		if diags.HasError() {
+			break
+		}
 
 		fmt.Fprintln(f, "converted imported resource "+irProto6.TypeName+" to protocol types")
-		resp.Diagnostics = append(resp.Diagnostics, diags.ToTfprotov6Diagnostics()...)
 		resp.ImportedResources = append(resp.ImportedResources, irProto6)
 	}
 
